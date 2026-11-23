@@ -1,7 +1,6 @@
 ﻿int ej;
 
-do
-{
+do {
     Console.WriteLine();
     Console.WriteLine("1. Sistema de Registro y Notificación de Ventas");
     Console.WriteLine("2. Sistema de Control de Temperatura en un Invernadero");
@@ -14,8 +13,7 @@ do
     ej = Convert.ToInt32(Console.ReadLine());
     Console.WriteLine();
 
-    switch (ej)
-    {
+    switch (ej) {
         case 1: Ejercicio1(); break;
         case 2: Ejercicio2(); break;
         case 3: Ejercicio3(); break;
@@ -28,7 +26,7 @@ do
 } while (ej != 0);
 
 
-void Ejercicio1(){
+void Ejercicio1() {
     Console.WriteLine();
     Console.WriteLine("--- Ejercicio 1 ---");
     Console.WriteLine();
@@ -37,15 +35,30 @@ void Ejercicio1(){
     var servicioRegistro = new ServicioRegistro();
     var servicioNotificacion = new ServicioNotificacion();
 
-    Console.WriteLine();
     registro.VentaRealizada += servicioRegistro.RegistrarVenta;
-    Console.WriteLine();
     registro.VentaRealizada += servicioNotificacion.EnviarNotificacionVenta;
+    
+    Console.Write("Nombre del Primer Producto: ");
+    string nameProduc1 = Console.ReadLine();
+    Console.WriteLine();
+
+    Console.Write("Precio del Primer Producto: ");
+    decimal precioProduc1 = Convert.ToDecimal(Console.ReadLine());
+    Console.WriteLine();
 
     Console.WriteLine();
-    registro.ProcesarVenta("Laptop", 1200.50m);     
+    registro.ProcesarVenta(nameProduc1, precioProduc1);
+
+    Console.Write("Nombre del Segundo Producto: ");
+    string nameProduc2 = Console.ReadLine();
     Console.WriteLine();
-    registro.ProcesarVenta("Mouse", 25.99m);
+
+    Console.Write("Precio del Primer Producto: ");
+    decimal precioProduc2 = Convert.ToDecimal(Console.ReadLine());
+    Console.WriteLine();
+      
+    Console.WriteLine();
+    registro.ProcesarVenta(nameProduc2, precioProduc2);
 }
 
 void Ejercicio2() {
@@ -53,7 +66,10 @@ void Ejercicio2() {
     Console.WriteLine("--- Ejercicio 2 ---");
     Console.WriteLine();
 
-    var control = new ControlTemperatura(30);
+    Console.Write("Introduce la temperatura maxima permitida: ");
+    int max = Convert.ToInt32(Console.ReadLine());
+
+    var control = new ControlTemperatura(max);
     var alerta = new ServicioAlerta();
     var registroTemp = new ServicioRegistroTemperatura();
 
@@ -69,22 +85,52 @@ void Ejercicio2() {
 
 }
 
-void Ejercicio3()
-{
+void Ejercicio3() {
     Console.WriteLine();
     Console.WriteLine("--- Ejercicio 3 ---");
     Console.WriteLine();
+
+    var gestor = new GestorBackups();
+    var notificacion = new ServicioNotificacionBackup();
+    var log = new ServicioLog();
+
+    gestor.BackupCompletado += notificacion.EnviarNotificacion;
+    gestor.BackupCompletado += log.RegistrarOperacion;
+
+    Console.Write("Nombre del Primer Archivo: ");
+    string nameDocument1 = Console.ReadLine();
+    Console.WriteLine();
+
+    Console.WriteLine();
+    gestor.RealizarBackup(nameDocument1);
+
+    Console.Write("Nombre del Segundo Archivo: ");
+    string nameDocument2 = Console.ReadLine();
+    Console.WriteLine();
+
+    Console.WriteLine();
+    gestor.RealizarBackup(nameDocument2);
 }
 
-void Ejercicio4()
-{
+void Ejercicio4() {
     Console.WriteLine();
     Console.WriteLine("--- Ejercicio 4 ---");
     Console.WriteLine();
+
+    var sensor = new SensorMonitoreo(new TimeSpan(8, 0, 0), new TimeSpan(12, 0, 0));
+    var alarma = new ServicioAlarma();
+    var incidencias = new ServicioRegistroIncidencias();
+
+    sensor.AlertaIntruso += alarma.ActivarAlarma;
+    sensor.AlertaIntruso += incidencias.GuardarRegistro;
+
+    Console.WriteLine();
+    sensor.DetectarApertura("Puerta principal");
+    Console.WriteLine();
+    sensor.DetectarApertura("Ventana cocina");
 }
 
-void Ejercicio5()
-{
+void Ejercicio5() {
     Console.WriteLine();
     Console.WriteLine("--- Ejercicio 5 ---");
     Console.WriteLine();
@@ -158,15 +204,107 @@ public class ControlTemperatura{
 }
 
 public class ServicioAlerta {
-    public void EnviarAlerta(object sender, TemperaturaEventArgs e)
-    {
+    public void EnviarAlerta(object sender, TemperaturaEventArgs e) {
         Console.WriteLine($"[ALERTA] ¡Temperatura alta! {e.TemperaturaActual}°C supera el umbral de {e.Umbral}°C");
     }
 }
 
 public class ServicioRegistroTemperatura {
-    public void RegistrarTemperatura(object sender, TemperaturaEventArgs e)
-    {
+    public void RegistrarTemperatura(object sender, TemperaturaEventArgs e) {
         Console.WriteLine($"[REGISTRO] Temperatura registrada: {e.TemperaturaActual}°C");
+    }
+}
+
+// Sistema de Backup y Notificación de Archivos
+public class BackupEventArgs : EventArgs {
+    public string NombreArchivo { get; set; }
+    public DateTime Fecha { get; set; }
+
+    public BackupEventArgs(string nombreArchivo, DateTime fecha) {
+        NombreArchivo = nombreArchivo;
+        Fecha = fecha;
+    }
+}
+
+public class GestorBackups {
+    public event EventHandler<BackupEventArgs> BackupCompletado;
+
+    public void RealizarBackup(string nombreArchivo) {
+        Console.WriteLine($"Realizando copia de seguridad de '{nombreArchivo}'...");
+        OnBackupCompletado(new BackupEventArgs(nombreArchivo, DateTime.Now));
+    }
+
+    protected virtual void OnBackupCompletado(BackupEventArgs e) {
+        BackupCompletado?.Invoke(this, e);
+    }
+}
+
+public class ServicioNotificacionBackup {
+    public void EnviarNotificacion(object sender, BackupEventArgs e) {
+        Console.WriteLine($"[NOTIFICACIÓN] Backup completado de '{e.NombreArchivo}' a las {e.Fecha:HH:mm:ss}");
+    }
+}
+
+public class ServicioLog
+{
+    public void RegistrarOperacion(object sender, BackupEventArgs e) {
+        Console.WriteLine($"[LOG] Operación registrada: {e.NombreArchivo} - {e.Fecha}");
+    }
+}
+
+// Sistema de Monitoreo de Sensores de Puertas y Ventanas
+public class IntrusoEventArgs : EventArgs
+{
+    public string NombreSensor { get; set; }
+    public DateTime HoraDeteccion { get; set; }
+
+    public IntrusoEventArgs(string nombreSensor, DateTime horaDeteccion)
+    {
+        NombreSensor = nombreSensor;
+        HoraDeteccion = horaDeteccion;
+    }
+}
+
+public class SensorMonitoreo
+{
+    private readonly TimeSpan _horaInicioPermitida;
+    private readonly TimeSpan _horaFinPermitida;
+
+    public event EventHandler<IntrusoEventArgs> AlertaIntruso;
+
+    public SensorMonitoreo(TimeSpan horaInicioPermitida, TimeSpan horaFinPermitida) {
+        _horaInicioPermitida = horaInicioPermitida;
+        _horaFinPermitida = horaFinPermitida;
+    }
+
+    public void DetectarApertura(string nombreSensor) {
+        var horaActual = DateTime.Now.TimeOfDay;
+        bool fueraDeHorario = horaActual < _horaInicioPermitida || horaActual > _horaFinPermitida;
+
+        Console.WriteLine($"Sensor '{nombreSensor}' abierto a las {DateTime.Now:HH:mm:ss}");
+        if (fueraDeHorario)
+        {
+            OnAlertaIntruso(new IntrusoEventArgs(nombreSensor, DateTime.Now));
+        }
+        else
+        {
+            Console.WriteLine("  (dentro del horario permitido, sin alerta)");
+        }
+    }
+
+    protected virtual void OnAlertaIntruso(IntrusoEventArgs e) {
+        AlertaIntruso?.Invoke(this, e);
+    }
+}
+
+public class ServicioAlarma {
+    public void ActivarAlarma(object sender, IntrusoEventArgs e) {
+        Console.WriteLine($"[ALARMA] ¡INTRUSO DETECTADO! Sensor: {e.NombreSensor} a las {e.HoraDeteccion:HH:mm:ss}");
+    }
+}
+
+public class ServicioRegistroIncidencias {
+    public void GuardarRegistro(object sender, IntrusoEventArgs e) {
+        Console.WriteLine($"[BD] Incidencia guardada: {e.NombreSensor} - {e.HoraDeteccion}");
     }
 }
