@@ -1,6 +1,7 @@
 ﻿int ej;
 
 do {
+    Console.Clear();
     Console.WriteLine();
     Console.WriteLine("1. Sistema de Registro y Notificación de Ventas");
     Console.WriteLine("2. Sistema de Control de Temperatura en un Invernadero");
@@ -21,6 +22,12 @@ do {
         case 5: Ejercicio5(); break;
         case 0: Console.WriteLine("Saliendo del programa..."); break;
         default: Console.WriteLine("Opción no válida. Inténtalo de nuevo."); break;
+    }
+
+    if (ej != 0) {
+        Console.WriteLine();
+        Console.Write("Pulsa ENTER para volver al menú...");
+        Console.ReadLine();
     }
 
 } while (ej != 0);
@@ -46,8 +53,8 @@ void Ejercicio1() {
     decimal precioProduc1 = Convert.ToDecimal(Console.ReadLine());
     Console.WriteLine();
 
-    Console.WriteLine();
     registro.ProcesarVenta(nameProduc1, precioProduc1);
+    Console.WriteLine();
 
     Console.Write("Nombre del Segundo Producto: ");
     string nameProduc2 = Console.ReadLine();
@@ -55,7 +62,6 @@ void Ejercicio1() {
 
     Console.Write("Precio del Primer Producto: ");
     decimal precioProduc2 = Convert.ToDecimal(Console.ReadLine());
-    Console.WriteLine();
       
     Console.WriteLine();
     registro.ProcesarVenta(nameProduc2, precioProduc2);
@@ -99,14 +105,13 @@ void Ejercicio3() {
 
     Console.Write("Nombre del Primer Archivo: ");
     string nameDocument1 = Console.ReadLine();
-    Console.WriteLine();
 
     Console.WriteLine();
     gestor.RealizarBackup(nameDocument1);
+    Console.WriteLine();
 
     Console.Write("Nombre del Segundo Archivo: ");
     string nameDocument2 = Console.ReadLine();
-    Console.WriteLine();
 
     Console.WriteLine();
     gestor.RealizarBackup(nameDocument2);
@@ -115,7 +120,6 @@ void Ejercicio3() {
 void Ejercicio4() {
     Console.WriteLine();
     Console.WriteLine("--- Ejercicio 4 ---");
-    Console.WriteLine();
 
     var sensor = new SensorMonitoreo(new TimeSpan(8, 0, 0), new TimeSpan(12, 0, 0));
     var alarma = new ServicioAlarma();
@@ -134,6 +138,29 @@ void Ejercicio5() {
     Console.WriteLine();
     Console.WriteLine("--- Ejercicio 5 ---");
     Console.WriteLine();
+
+    Console.Write("Introduce el límite de consumo permitido (kWh): ");
+    double limite = Convert.ToDouble(Console.ReadLine());
+    Console.WriteLine();
+
+    var supervisor = new SupervisorConsumo(limite);
+    var notificacion = new ServicioNotificacionConsumo();
+    var ajuste = new ServicioAjusteAutomatizado();
+
+    supervisor.ConsumoExcesivo += notificacion.EnviarAdvertencia;
+    supervisor.ConsumoExcesivo += ajuste.AjustarDispositivos;
+
+    Console.Write("Introduce el consumo actual del primer dispositivo (kWh): ");
+    double consumo1 = Convert.ToDouble(Console.ReadLine());
+    Console.WriteLine();
+
+    Console.Write("Introduce el consumo actual del segundo dispositivo (kWh): ");
+    double consumo2 = Convert.ToDouble(Console.ReadLine());
+    Console.WriteLine();
+
+    double consumoTotal = consumo1 + consumo2;
+
+    supervisor.SupervisarConsumo(consumoTotal);
 }
 
 //  Sistema de Registro y Notificación de Ventas
@@ -288,7 +315,7 @@ public class SensorMonitoreo
         }
         else
         {
-            Console.WriteLine("  (dentro del horario permitido, sin alerta)");
+            Console.WriteLine("(dentro del horario permitido, sin alerta)");
         }
     }
 
@@ -306,5 +333,49 @@ public class ServicioAlarma {
 public class ServicioRegistroIncidencias {
     public void GuardarRegistro(object sender, IntrusoEventArgs e) {
         Console.WriteLine($"[BD] Incidencia guardada: {e.NombreSensor} - {e.HoraDeteccion}");
+    }
+}
+
+// Sistema de Supervisión de Consumo de Energía
+public class ConsumoEventArgs : EventArgs {
+    public double ConsumoActual { get; set; }
+    public double LimiteConsumo { get; set; }
+
+    public ConsumoEventArgs(double consumoActual, double limiteConsumo) {
+        ConsumoActual = consumoActual;
+        LimiteConsumo = limiteConsumo;
+    }
+}
+
+public class SupervisorConsumo {
+    private readonly double _limiteConsumo;
+
+    public event EventHandler<ConsumoEventArgs> ConsumoExcesivo;
+
+    public SupervisorConsumo(double limiteConsumo) {
+        _limiteConsumo = limiteConsumo;
+    }
+
+    public void SupervisarConsumo(double consumoActual) {
+        Console.WriteLine($"Consumo actual: {consumoActual} kWh (límite permitido: {_limiteConsumo} kWh)");
+        if (consumoActual > _limiteConsumo) {
+            OnConsumoExcesivo(new ConsumoEventArgs(consumoActual, _limiteConsumo));
+        }
+    }
+
+    protected virtual void OnConsumoExcesivo(ConsumoEventArgs e) {
+        ConsumoExcesivo?.Invoke(this, e);
+    }
+}
+
+public class ServicioNotificacionConsumo {
+    public void EnviarAdvertencia(object sender, ConsumoEventArgs e) {
+        Console.WriteLine($"[ADVERTENCIA] El consumo ({e.ConsumoActual} kWh) supera el límite ({e.LimiteConsumo} kWh).");
+    }
+}
+
+public class ServicioAjusteAutomatizado {
+    public void AjustarDispositivos(object sender, ConsumoEventArgs e) {
+        Console.WriteLine("[AJUSTE] Reduciendo consumo automáticamente de los dispositivos...");
     }
 }
